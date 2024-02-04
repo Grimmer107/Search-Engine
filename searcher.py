@@ -1,7 +1,10 @@
-import json, os
+import json
+import os
+from typing import List, Tuple
+
 
 # searches the word in the lexicon and returns its offset
-def search_lexicon(word):
+def search_lexicon(word: str) -> str | None:
     file = open('lexicon.txt', "r")
     lexicon = json.load(file)
     if word not in lexicon:
@@ -12,10 +15,10 @@ def search_lexicon(word):
 
 
 # receives a list of words to search
-def searchWords(wordsList):
+def search_words(words_list: List[str]) -> List[Tuple]:
     # get the wordIDs
     word_ids = []
-    for word in wordsList:
+    for word in words_list:
         word_id = search_lexicon(word)
         if word_id is not None:
             word_ids.append(word_id)
@@ -25,7 +28,8 @@ def searchWords(wordsList):
 
     for word_id in word_ids:
         barrel_num = int(word_id[0] / 533) + 1
-        inverted_index = open("./InvertedBarrels/inverted_barrel_" + str(barrel_num) + ".txt", 'r')
+        inverted_index = open(
+            "./InvertedBarrels/inverted_barrel_" + str(barrel_num) + ".txt", 'r')
 
         result_count = 1
         # jump to the location of the corresponding word
@@ -34,41 +38,46 @@ def searchWords(wordsList):
         # load the results of the corresponding word
         while line[0][1] == word_id[0]:  # and result_count < 31:
             # destructuring the data
-            docID = str(line[0][0])
-            titleHitList = line[1][0]
-            titleHits = titleHitList[1] * 5  # title hits are scaled by 5 to increase relevance
-            contentHitList = line[1][1]
-            contentHits = contentHitList[1]
+            doc_id = str(line[0][0])
+            title_hit_list = line[1][0]
+            # title hits are scaled by 5 to increase relevance
+            title_hits = title_hit_list[1] * 5
+            content_hit_list = line[1][1]
+            content_hits = content_hit_list[1]
             # if the document has already been added before then calculate the proximity between the words
-            if docID in documents:
+            if doc_id in documents:
                 # add the new hits to the score
-                documents[docID][0] = documents[docID][0] + titleHits + contentHits
+                documents[doc_id][0] = documents[doc_id][0] + \
+                    title_hits + content_hits
                 # calculate proximity and add weight
-                if contentHits > 0:
-                    if documents[docID][1] is not None:
-                        for docIdx in range(1, len(documents[docID])):  # calculate proximity of each occurance
-                            prevWordHitList = documents[docID][docIdx]
-                            idxRange = min(len(prevWordHitList), len(contentHitList))
-                            for locationIdx in range(2, idxRange):
-                                proximity = abs(prevWordHitList[locationIdx] - contentHitList[locationIdx])
+                if content_hits > 0:
+                    if documents[doc_id][1] is not None:
+                        # calculate proximity of each occurance
+                        for doc_idx in range(1, len(documents[doc_id])):
+                            prev_word_hit_list = documents[doc_id][doc_idx]
+                            idx_range = min(len(prev_word_hit_list),
+                                            len(content_hit_list))
+                            for location_idx in range(2, idx_range):
+                                proximity = abs(
+                                    prev_word_hit_list[location_idx] - content_hit_list[location_idx])
                                 if proximity <= 1:
-                                    documents[docID][0] += 10
+                                    documents[doc_id][0] += 10
                                 elif proximity <= 10:
-                                    documents[docID][0] += 8
+                                    documents[doc_id][0] += 8
                                 elif proximity <= 100:
-                                    documents[docID][0] += 4
+                                    documents[doc_id][0] += 4
                                 else:
-                                    documents[docID][0] += 2
+                                    documents[doc_id][0] += 2
                     # add the hitlist of the current word for next word's proximity calculation
-                    documents[docID].append(contentHitList)
+                    documents[doc_id].append(content_hit_list)
                     # if it hasnt been added then add the data
             else:
                 # if there are no content hits (means the word only occured in the title) then just add None
-                if contentHits > 0:
-                    documents[docID] = [titleHits + contentHits,
-                                        contentHitList]  # add hits in both title and content and store the hit list for proximity check
+                if content_hits > 0:
+                    documents[doc_id] = [title_hits + content_hits,
+                                         content_hit_list]  # add hits in both title and content and store the hit list for proximity check
                 else:
-                    documents[docID] = [titleHits + contentHits, None]
+                    documents[doc_id] = [title_hits + content_hits, None]
             line = json.loads(inverted_index.readline())
             result_count += 1
 
@@ -76,10 +85,9 @@ def searchWords(wordsList):
 
     # convert the documents dictionary into a list and sort in descending order based on the score | higher the score the higher the rank of the document
 
-    rankedDocuments = sorted(list(documents.items()), key=lambda x: x[1][0], reverse=True)
-    for x in rankedDocuments:
+    ranked_documents = sorted(list(documents.items()),
+                              key=lambda x: x[1][0], reverse=True)
+    for x in ranked_documents:
         print(x)
 
-    return rankedDocuments
-
-
+    return ranked_documents

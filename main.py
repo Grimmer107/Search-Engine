@@ -1,10 +1,11 @@
-import re, json
+import re
+import json
 import webbrowser
 from datetime import datetime
 from tkinter import *
 from tkinter.font import ITALIC, Font
 from nltk import stem
-from searcher import searchWords
+from searcher import search_words
 from tkinter import filedialog
 from nltk.corpus import stopwords
 from nltk.stem.snowball import SnowballStemmer
@@ -17,29 +18,30 @@ stop_words = set(stopwords.words('english'))
 snow_stemmer = SnowballStemmer(language='english')
 
 
-def clickSearchButton(event):
+def click_search_button(event: Event, result: Text, search_text: Entry, window: Tk) -> None:
     start = datetime.now()
 
-    search_text = searchText.get()
+    search_text = search_text.get()
 
-    search_words = (re.sub('[^a-zA-Z]', ' ', search_text)).lower().split()
+    search_query = (re.sub('[^a-zA-Z]', ' ', search_text)).lower().split()
     # if the user didnt enter anything then return
     if len(search_text) == 0:
         result.delete(0.0, END)
         result.insert(END, "You didn't enter anything")
         return
         # stem the input words
-    stemmed_words = [snow_stemmer.stem(word) for word in search_words if not word in stop_words]
+    stemmed_words = [snow_stemmer.stem(
+        word) for word in search_query if not word in stop_words]
 
     # the file containing the URLs of each indexed document
-    UrlFile = open('document_index.txt', 'r')
-    docIndex = json.load(UrlFile)
+    url_file = open('document_index.txt', 'r')
+    doc_index = json.load(url_file)
 
     # the result of the search
-    rankedDocuments = searchWords(stemmed_words)
+    ranked_documents = search_words(stemmed_words)
 
     end = datetime.now()
-    timeTaken = str(end - start)
+    time_taken = str(end - start)
 
     # Convert to hyperLinks
     hyperLink = HyperlinkManager(result)
@@ -48,87 +50,105 @@ def clickSearchButton(event):
 
     frame3.pack()
 
-    timeTaken_msg = Label(frame3, text="Time taken for search in seconds = ", font=("Helvetica", 12, ITALIC),
-                          background="black", foreground="#00FFC0")
-    timeTaken_msg.pack(side=LEFT)
+    time_taken_msg = Label(frame3, text="Time taken for search in seconds = ", font=("Helvetica", 12, ITALIC),
+                           background="black", foreground="#00FFC0")
+    time_taken_msg.pack(side=LEFT)
 
-    timeTaken_secs = Label(frame3, text=timeTaken, font=("Helvetica", 12, ITALIC), foreground="white",
-                           background="black")
-    timeTaken_secs.pack(side=RIGHT)
+    time_taken_secs = Label(frame3, text=time_taken, font=("Helvetica", 12, ITALIC), foreground="white",
+                            background="black")
+    time_taken_secs.pack(side=RIGHT)
 
     frame3.place(relx=0.5, rely=0.7, anchor=CENTER)
 
     result.delete(0.0, END)
 
-    # this displays the result 
-    if len(rankedDocuments):
-        for document in rankedDocuments:
-            url = docIndex[document[0]]
-            result.insert(END, url, hyperLink.add(partial(webbrowser.open, url)))
+    # this displays the result
+    if len(ranked_documents):
+        for document in ranked_documents:
+            url = doc_index[document[0]]
+            result.insert(END, url, hyperLink.add(
+                partial(webbrowser.open, url)))
             result.insert(END, "\n")
     else:
         result.insert(END, "Sorry, no result found")
 
 
-def clickInsertDataButton():
+def click_insert_data_button(result: Text) -> None:
     # gets the path of the folder containing the data
-    folderSelected = filedialog.askdirectory()
+    folder_selected = filedialog.askdirectory()
     try:
         # if the IndexInfo[0] contains a flag if it is 1 that means more documents were added to the forward index else they werent
-        indexInfo = generate_forward_index(folderSelected)
-        if indexInfo[0]:
-            indexInfo.append(inverted_index_generator())
+        index_info = generate_forward_index(folder_selected)
+        if index_info[0]:
+            index_info.append(inverted_index_generator())
     except:
         result.delete(0.0, END)
-        result.insert(END, "There was an error in generating the forward and inverted indices")
+        result.insert(
+            END, "There was an error in generating the forward and inverted indices")
         return
 
     result.delete(0.0, END)
-    if indexInfo[0]:
-        result.insert(END, "Forward and inverted index generation successful for json files in " + folderSelected)
+    if index_info[0]:
+        result.insert(
+            END, "Forward and Inverted index generation successful for json files in " + folder_selected)
         result.insert(END, "\n")
-        result.insert(END, "The number of docs scanned were: " + str(indexInfo[1]))
+        result.insert(
+            END, "The number of docs scanned were: " + str(index_info[1]))
         result.insert(END, "\n")
-        result.insert(END, "Time it took for forward index generation is: " + indexInfo[2])
+        result.insert(
+            END, "Time it took for forward index generation is: " + index_info[2])
         result.insert(END, "\n")
-        result.insert(END, "Time it took for inverted index generation is: " + indexInfo[3])
+        result.insert(
+            END, "Time it took for inverted index generation is: " + index_info[3])
     else:
         result.insert(END,
-                      "There were either no Json files in the input directory or those Json files have already been indexed")
+                      "There were either no json files in the input directory or those json files have already been indexed")
 
 
-window = Tk()
-window.title('Search')
-window.configure(background="black")
-window.geometry("1920x1080")
+def create_search_window() -> None:
+    """Setting up search window"""
 
-window.bind('<Return>', clickSearchButton)
+    window = Tk()
+    window.title('Talash')
+    window.configure(background="black")
+    window.geometry("1920x1080")
 
-logo = PhotoImage(file="talash_png_2.png")
-Label(window, image=logo, background="black").place(relx=0.5, rely=0.25, anchor=CENTER)
+    window.bind('<Return>', click_search_button)
 
-frame = Frame(window)
-frame.pack()
+    logo = PhotoImage(file="./assets/talash_png_2.png")
+    Label(window, image=logo, background="black").place(
+        relx=0.5, rely=0.25, anchor=CENTER)
 
-searchText = Entry(frame, width=50, font=("Helvetica", 14), bg="white")
-searchText.pack(side=LEFT)
+    frame = Frame(window)
+    frame.pack()
 
-searchButton = Button(frame, text="Search", font=("Helvetica", 10), width=6)
-searchButton.pack(side=RIGHT)
-searchButton.bind("<Button-1>", lambda event: clickSearchButton(event))
+    search_text = Entry(frame, width=50, font=("Helvetica", 14), bg="white")
+    search_text.pack(side=LEFT)
 
-frame.place(relx=0.5, rely=0.33, anchor=CENTER)
+    search_button = Button(frame, text="Search",
+                           font=("Helvetica", 10), width=6)
+    search_button.pack(side=RIGHT)
+    search_button.bind(
+        "<Button-1>", lambda event: click_search_button(event, result, search_text, window))
 
-scroll = Scrollbar(window)
-scroll.pack(side=RIGHT, fill=Y)
+    frame.place(relx=0.5, rely=0.33, anchor=CENTER)
 
-result = Text(window, width=100, height=10, foreground="black", background="#00FFC0", font=("Helvetica", 14),
-              yscrollcommand=scroll.set)
-result.place(relx=0.5, rely=0.52, anchor=CENTER)
+    scroll = Scrollbar(window)
+    scroll.pack(side=RIGHT, fill=Y)
 
-scroll.config(command=result.yview)
+    result = Text(window, width=100, height=10, foreground="black", background="#00FFC0", font=("Helvetica", 14),
+                  yscrollcommand=scroll.set)
+    result.place(relx=0.5, rely=0.52, anchor=CENTER)
 
-addButton = Button(window, text="Insert Data", font=("Helvetica", 10), width=11, command=clickInsertDataButton)
-addButton.place(relx=0.5, rely=0.77, anchor=CENTER)
+    scroll.config(command=result.yview)
 
-window.mainloop()
+    add_button = Button(window, text="Add Data", font=(
+        "Helvetica", 10), width=11, command=partial(click_insert_data_button, result))
+
+    add_button.place(relx=0.5, rely=0.77, anchor=CENTER)
+
+    window.mainloop()
+
+
+if __name__ == "__main__":
+    create_search_window()

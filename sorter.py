@@ -1,8 +1,11 @@
-import os, json
+import os
+import json
+from typing import List
 from datetime import datetime
 
+
 # performs sorting on forward barrel content
-def sort(input_list):
+def sort(input_list: List) -> List[List]:
     # creates a list of 533 lists corresponding to the number of words in one fwd index file
     sorted_list = [[] for i in range(533)]
 
@@ -13,12 +16,12 @@ def sort(input_list):
     return sorted_list
 
 
-def inverted_index_generator():
-
+def inverted_index_generator() -> None:
     start = datetime.now()
 
     # we find forward barrels present in directory
-    barrels = [forward_barrel for forward_barrel in os.listdir("./forwardBarrels") if forward_barrel.startswith('forward_barrel_')]
+    barrels = [forward_barrel for forward_barrel in os.listdir(
+        "./forwardBarrels") if forward_barrel.startswith('forward_barrel_')]
     # opening lexicon to update the offset values into inverted barrels
     lexicon_file = open("lexicon.txt", "r")
     lexicon = json.load(lexicon_file)
@@ -49,11 +52,14 @@ def inverted_index_generator():
         forward_file.close()
 
         # re sort the inverted list and write to the inverted barrel
-        inverted_file = open("./InvertedBarrels/inverted_barrel_" + barrel_num + ".txt", 'w')
+        inverted_file = open(
+            "./InvertedBarrels/inverted_barrel_" + barrel_num + ".txt", 'w')
         sorted_list = sort(inverted_list)
         for i in range(len(sorted_list)):
             for j in range(len(sorted_list[i])):
-                if j == 0: lexicon[lexicon_keys[sorted_list[i][0][0][1]+1]][1] = inverted_file.tell()
+                if j == 0:
+                    lexicon[lexicon_keys[sorted_list[i][0][0][1]+1]
+                            ][1] = inverted_file.tell()
                 inverted_file.write(json.dumps(sorted_list[i][j]))
                 inverted_file.write('\n')
         inverted_file.close()
@@ -63,7 +69,6 @@ def inverted_index_generator():
     lexicon_file.close()
 
     end = datetime.now()
-    timeTaken = str(end - start)
-    print("The time of execution to create inverted index is:", timeTaken)
-    return timeTaken
-
+    time_taken = str(end - start)
+    print("The time of execution to create inverted index is:", time_taken)
+    return time_taken
