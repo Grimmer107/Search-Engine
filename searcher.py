@@ -83,7 +83,7 @@ def search_single_word_results(word_id: Tuple[int, int], documents: Dict) -> Non
         line = json.loads(inverted_index.readline())
 
         # load the results of the corresponding word and result_count < 31
-        while line[0][1] == word_id[0]:
+        while line[0][1] == word_id[0] and result_count < 31:
 
             # destructuring the data
             doc_id = str(line[0][0])

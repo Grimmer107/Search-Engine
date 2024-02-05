@@ -5,6 +5,8 @@ from datetime import datetime
 from functools import partial
 
 from tkinter import *
+import tkinter as tk
+from tkinter import ttk
 from tkinter.font import ITALIC, Font
 from tkinter import filedialog
 from tkHyperLinkManager import HyperlinkManager
@@ -49,29 +51,30 @@ def click_search_button(event: Event, result: Text, search_text: Entry, window: 
     ranked_documents = search_words(stemmed_words)
 
     end = datetime.now()
-    time_taken = str(end - start)
+    time_taken = str((end - start).total_seconds())
 
     # Convert to hyperLinks
     hyperLink = HyperlinkManager(result)
 
     frame3 = Frame(window, background="black")
     frame3.pack()
-    time_taken_msg = Label(frame3, text="Time taken for search in seconds = ", font=("Helvetica", 12, ITALIC),
+    time_taken_msg = Label(frame3, text="Search Time (in seconds): ", font=("Helvetica", 12, ITALIC),
                            background="black", foreground="#00FFC0")
     time_taken_msg.pack(side=LEFT)
     time_taken_secs = Label(frame3, text=time_taken, font=("Helvetica", 12, ITALIC), foreground="white",
                             background="black")
     time_taken_secs.pack(side=RIGHT)
-    frame3.place(relx=0.5, rely=0.7, anchor=CENTER)
+    frame3.place(relx=0.5, rely=0.8, anchor=CENTER)
     result.delete(0.0, END)
 
     # this displays the result
     if len(ranked_documents):
+        result.insert(END, "Search Results: \n\n")
         for document in ranked_documents:
             url = doc_index[document[0]]
-            result.insert(END, url, hyperLink.add(
+            result.insert(END,  url, hyperLink.add(
                 partial(webbrowser.open, url)))
-            result.insert(END, "\n")
+            result.insert(END, "\n\n")
     else:
         result.insert(END, "Sorry, no results found!")
 
@@ -117,47 +120,52 @@ def click_insert_data_button(result: Text) -> None:
                       "There were either no json files in the input directory or those json files have already been indexed!")
 
 
+def set_window_size(window):
+    """sets the window size according to screen size"""
+
+    screen_width = window.winfo_screenwidth()
+    screen_height = window.winfo_screenheight()
+    window.geometry(f"{screen_width}x{screen_height}")
+
+
 def create_search_window() -> None:
     """Setting up search window"""
 
     window = Tk()
     window.title('Talash')
-    window.configure(background="black")
-    window.geometry("1920x1080")
+    set_window_size(window)
+    window.resizable(False, False)
 
-    window.bind('<Return>', click_search_button)
+    window.configure(background="black")
 
     logo = PhotoImage(file="./assets/talash_png_2.png")
     Label(window, image=logo, background="black").place(
-        relx=0.5, rely=0.25, anchor=CENTER)
+        relx=0.5, rely=0.15, anchor=CENTER)
 
     frame = Frame(window)
     frame.pack()
 
-    search_text = Entry(frame, width=50, font=("Helvetica", 14), bg="white")
-    search_text.pack(side=LEFT)
-
     search_button = Button(frame, text="Search",
-                           font=("Helvetica", 10), width=6)
+                           font=("Helvetica", 10), width=10, borderwidth=0)
     search_button.pack(side=RIGHT)
     search_button.bind(
         "<Button-1>", lambda event: click_search_button(event, result, search_text, window))
+    window.bind('<Return>', lambda event: click_search_button(
+        event, result, search_text, window))
 
-    frame.place(relx=0.5, rely=0.33, anchor=CENTER)
+    search_text = Entry(frame, width=50, font=(
+        "Helvetica", 14), bg="white")
+    search_text.pack(side=LEFT, ipadx=4, ipady=4)
 
-    scroll = Scrollbar(window)
-    scroll.pack(side=RIGHT, fill=Y)
+    frame.place(relx=0.5, rely=0.25, anchor=CENTER)
 
-    result = Text(window, width=100, height=10, foreground="black", background="#00FFC0", font=("Helvetica", 14),
-                  yscrollcommand=scroll.set)
-    result.place(relx=0.5, rely=0.52, anchor=CENTER)
+    result = Text(window, width=80, height=12, foreground="white", wrap=tk.WORD,
+                  background="black", font=("Helvetica", 14), borderwidth=1)
+    result.place(relx=0.50, rely=0.50, anchor=CENTER)
 
-    scroll.config(command=result.yview)
-
-    add_button = Button(window, text="Add Data", font=(
-        "Helvetica", 10), width=11, command=partial(click_insert_data_button, result))
-
-    add_button.place(relx=0.5, rely=0.77, anchor=CENTER)
+    add_button = Button(window, text="Index Data", font=(
+        "Helvetica", 10), width=11, borderwidth=0, command=partial(click_insert_data_button, result))
+    add_button.place(relx=0.50, rely=0.72, anchor=CENTER)
 
     window.mainloop()
 
