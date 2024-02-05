@@ -30,5 +30,5 @@ For multi-word search string, the search engine also carries out proximity analy
 on proximity which gets added to IR Score. The documents are sorted by their IR Score and then displayed in form of links to user.
 
 
-**Note:** The project folder must contain the directories named "ForwardBarrels" and "InvertedBarrels". A portion of the dataset is given in folder "data"
+> **Note:** The project folder must contain the directories named "ForwardBarrels" and "InvertedBarrels". A portion of the dataset is given in folder "data"
 which contains files in json format.
