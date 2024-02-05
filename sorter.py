@@ -1,11 +1,12 @@
 import os
 import json
-from typing import List
+from typing import List, Tuple, Any
 from datetime import datetime
 
 
-# performs sorting on forward barrel content
 def sort(input_list: List) -> List[List]:
+    """performs sorting on forward barrel content"""
+
     # creates a list of 533 lists corresponding to the number of words in one fwd index file
     sorted_list = [[] for i in range(533)]
 
@@ -16,44 +17,41 @@ def sort(input_list: List) -> List[List]:
     return sorted_list
 
 
-def inverted_index_generator() -> None:
-    start = datetime.now()
+def get_single_inverted_barrel_content(curr_barrel: str, barrels: List) -> Tuple[List, str]:
+    """Takes data from corresponding forward barrel, combines it
+    with content of inverted barrel if exist and returns all content
+    """
 
-    # we find forward barrels present in directory
-    barrels = [forward_barrel for forward_barrel in os.listdir(
-        "./forwardBarrels") if forward_barrel.startswith('forward_barrel_')]
-    # opening lexicon to update the offset values into inverted barrels
-    lexicon_file = open("lexicon.txt", "r")
-    lexicon = json.load(lexicon_file)
-    lexicon_keys = list(lexicon.keys())
-    lexicon_file.close()
-
-    for barrel in barrels:
-        # at a time we open one forward barrel
-        forward_file = open('./forwardBarrels/{}'.format(barrel))
+    with open('./ForwardBarrels/{}'.format(curr_barrel)) as forward_file:
         inverted_list = []
+
         # get the barrel number corresponding to the forward index file because they are not sorted
-        if barrel[17].isnumeric() and barrel[16].isnumeric():
-            barrel_num = barrel[15] + barrel[16] + barrel[17]
-        elif barrel[16].isnumeric():
-            barrel_num = barrel[15] + barrel[16]
+        if curr_barrel[17].isnumeric() and curr_barrel[16].isnumeric():
+            barrel_num = curr_barrel[15] + curr_barrel[16] + curr_barrel[17]
+        elif curr_barrel[16].isnumeric():
+            barrel_num = curr_barrel[15] + curr_barrel[16]
         else:
-            barrel_num = barrel[15]
+            barrel_num = curr_barrel[15]
 
         # if inverted barrel is present we load its content to a list
-        if os.path.isfile("./InvertedBarrels/inverted_barrel_" + barrel_num + ".txt"):
-            with open("./InvertedBarrels/inverted_barrel_" + barrel_num + ".txt", 'r') as inverted_index:
+        inverted_barrel_path = "./InvertedBarrels/inverted_barrel_" + barrel_num + ".txt"
+        if os.path.isfile(inverted_barrel_path):
+            with open(inverted_barrel_path, 'r') as inverted_index:
                 for line in inverted_index:
                     inverted_list.append(json.loads(line))
 
         # we append content of forward barrel to inverted list
         for line in forward_file:
             inverted_list.append(json.loads(line))
-        forward_file.close()
 
-        # re sort the inverted list and write to the inverted barrel
-        inverted_file = open(
-            "./InvertedBarrels/inverted_barrel_" + barrel_num + ".txt", 'w')
+    return inverted_list, barrel_num
+
+
+def write_inverted_barrel(inverted_list: List, barrel_num: str, lexicon: Any, lexicon_keys: List) -> None:
+    """sorts content by wordID and write content to single inverted barrel"""
+
+    inverted_barrel_path = "./InvertedBarrels/inverted_barrel_" + barrel_num + ".txt"
+    with open(inverted_barrel_path, 'w') as inverted_file:
         sorted_list = sort(inverted_list)
         for i in range(len(sorted_list)):
             for j in range(len(sorted_list[i])):
@@ -62,13 +60,36 @@ def inverted_index_generator() -> None:
                             ][1] = inverted_file.tell()
                 inverted_file.write(json.dumps(sorted_list[i][j]))
                 inverted_file.write('\n')
-        inverted_file.close()
 
-    lexicon_file = open("lexicon.txt", "w")
-    lexicon_file.write(json.dumps(lexicon))
-    lexicon_file.close()
+
+def inverted_index_generator() -> str:
+    """Generate inverted index from forward index"""
+
+    start = datetime.now()
+
+    # we find forward barrels present in directory
+    barrels = [forward_barrel for forward_barrel in os.listdir(
+        "./ForwardBarrels") if forward_barrel.startswith('forward_barrel_')]
+
+    # opening lexicon to update the offset values into inverted barrels
+    with open("lexicon.txt", "r") as lexicon_file:
+        lexicon = json.load(lexicon_file)
+        lexicon_keys = list(lexicon.keys())
+
+    for curr_barrel in barrels:
+
+        # at a time we open one forward barrel and get all content
+        inverted_list, barrel_num = get_single_inverted_barrel_content(
+            curr_barrel, barrels)
+
+        # re sort the inverted list and write to the inverted barrel
+        write_inverted_barrel(inverted_list, barrel_num, lexicon, lexicon_keys)
+
+    with open("lexicon.txt", "w") as lexicon_file:
+        lexicon_file.write(json.dumps(lexicon))
 
     end = datetime.now()
     time_taken = str(end - start)
     print("The time of execution to create inverted index is:", time_taken)
+
     return time_taken
