@@ -1,5 +1,5 @@
 # Talaash
-It is a search engine in Python.
+It is a search engine in Python. It uses json files as corpus of data. It is created after studying the Google research paper. It works in a similar manner. During indexing stage, it creates forward index, lexicon, and document index. It then converts forward index into inverted index for searching. During searching, it also takes relevance of document into consideration. To calculate relevance, IR Score is calculated which takes proximity into consideration. 
 
 ## Tools used
 - Python
